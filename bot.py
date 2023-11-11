@@ -2,13 +2,15 @@ import os
 import json
 from twitchio.ext import commands
 import logging
-from logging.config import fileConfig
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from urllib.parse import urlparse
 from sqlalchemy import select
 from orm import Base, User, Request, Song
 import yt_dlp
 from datetime import datetime
+import re
+
 
 class Bot(commands.Bot):
 
@@ -31,10 +33,23 @@ class Bot(commands.Bot):
 
         await self.handle_commands(message)
 
+    async def event_command_error(self, context: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandNotFound):
+            return
+
+        elif isinstance(error, commands.ArgumentParsingFailed):
+            return
+
     @commands.command(name='sr')
     async def sr(self, ctx: commands.Context, url):
         self.logger.info(
-            f"received song-request from {ctx.author.name}: {url}")
+            f"Song-request from {ctx.author.name}: {url}")
+
+        parsed_url = urlparse(url=url)
+        if not all([parsed_url.scheme, parsed_url.netloc]):
+            self.logger.error(f"Skipping invalid argument: '{url}'")
+            return
+
         twitch_user = await ctx.author.user()
         session = Session(engine)
 
@@ -42,19 +57,19 @@ class Bot(commands.Bot):
         user = session.scalar(user_select)
 
         if not user:
-            self.logger.info(f"User {ctx.author.name} unkown -> creating")
+            self.logger.info(f"New User: '{ctx.author.name}'")
             user = User(id=twitch_user.id, name=twitch_user.name,
                         display_name=twitch_user.display_name, created_at=twitch_user.created_at)
             session.add(user)
             session.commit()
         else:
-            self.logger.info(f"User {ctx.author.name} found in DB: {user.id}")
+            self.logger.info(f"User found: '{ctx.author.name}' -> '{user.id}'")
 
         song_select = select(Song).where(Song.url == url)
         song = session.scalar(song_select)
 
         if not song:
-            self.logger.info(f"Song {url} unkown -> creating")
+            self.logger.info(f"New Song: '{url}'")
             ytdlp_options = {
                 'noprogress': True,
                 'verbose': False,
@@ -67,7 +82,7 @@ class Bot(commands.Bot):
                 session.add(song)
                 session.commit()
         else:
-            self.logger.info(f"Song {url} found in DB: {song.id}")
+            self.logger.info(f"Song found: '{url}' -> '{song.id}'")
 
         request = Request(timestamp=datetime.now(),
                           user_id=user.id, song_id=song.id)
@@ -75,9 +90,10 @@ class Bot(commands.Bot):
         session.commit()
 
         self.logger.info(
-            f"Request {request.id} created ({user.id}, {song.id})")
+            f"New Request: {request.id} -> ({user.id}, {song.id})")
 
         session.close()
+
 
 def setupSQLLogging():
     sqlLogger = logging.getLogger('sqlalchemy')
@@ -95,6 +111,7 @@ def setupSQLLogging():
     logging.getLogger('sqlalchemy.engine').handlers = []
     logging.getLogger('sqlalchemy.pool').handlers = []
 
+
 def filter_maker(level):
     level = getattr(logging, level)
 
@@ -102,6 +119,7 @@ def filter_maker(level):
         return record.levelno <= level
 
     return filter
+
 
 if __name__ == "__main__":
     logging.config.dictConfig(json.load(open("logging_config.json", "r")))
