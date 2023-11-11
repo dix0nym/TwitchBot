@@ -2,6 +2,7 @@ import os
 import json
 from twitchio.ext import commands
 import logging
+import logging.config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from urllib.parse import urlparse
