@@ -21,6 +21,7 @@ class Bot(commands.Bot):
                          prefix=os.environ['BOT_PREFIX'],
                          initial_channels=[os.environ['CHANNEL']]
                          )
+        self.engine = engine
         self.logger = logging.getLogger("Bot")
 
     async def event_ready(self):
@@ -51,7 +52,7 @@ class Bot(commands.Bot):
             return
 
         twitch_user = await ctx.author.user()
-        session = Session(engine)
+        session = Session(self.engine)
 
         user_select = select(User).where(User.id == twitch_user.id)
         user = session.scalar(user_select)
