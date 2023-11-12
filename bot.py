@@ -3,6 +3,10 @@ import json
 from twitchio.ext import commands
 import logging
 import logging.config
+import discord
+from discord import Webhook
+from discord import Colour
+import aiohttp
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from urllib.parse import urlparse
@@ -10,8 +14,6 @@ from sqlalchemy import select
 from orm import Base, User, Request, Song
 import yt_dlp
 from datetime import datetime
-import re
-
 
 class Bot(commands.Bot):
 
@@ -80,7 +82,8 @@ class Bot(commands.Bot):
             with yt_dlp.YoutubeDL(ytdlp_options) as ydl:
                 info = ydl.extract_info(url, download=False)
                 song = Song(id=info['id'], title=info['title'], url=info['webpage_url'],
-                            duration=info['duration'], upload_date=info['upload_date'], channel=info['channel'])
+                            duration=info['duration'], upload_date=info['upload_date'],
+                            channel=info['channel'], thumbnail=info['thumbnail'])
                 session.add(song)
                 session.commit()
         else:
@@ -95,7 +98,21 @@ class Bot(commands.Bot):
             f"New Request: {request.id} -> ({user.id}, {song.id})")
 
         session.close()
+        if os.environ['WEBHOOK']:
+            await self.send_notification(os.environ['WEBHOOK'], ctx.author.name, song.title, song.url, song.thumbnail)
 
+    async def send_notification(self, webhook, author, title, url, thumbnail):
+        async with aiohttp.ClientSession() as session:
+            webhook = Webhook.from_url(webhook, session=session)
+            e = discord.Embed(title="Song Reqest", description=f"{title}", timestamp=datetime.now(),
+                              color=Colour.dark_blue())
+            e.add_field(name="Title", value=f"{title}")
+            e.add_field(name="URL", value=f"{url}")
+            e.add_field(name="Requester", value=f"{author}")
+            e.set_image(url=thumbnail)
+            e.set_thumbnail(url=thumbnail)
+
+            await webhook.send(content="", embed=e, username="Twitch-SR")
 
 def setupSQLLogging():
     sqlLogger = logging.getLogger('sqlalchemy')

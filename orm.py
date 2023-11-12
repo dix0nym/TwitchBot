@@ -54,6 +54,7 @@ class Song(Base):
     duration: Mapped[int] = mapped_column(Integer())
     upload_date: Mapped[str] = mapped_column(String(8))
     channel: Mapped[str] = mapped_column(String(100))
+    thumbnail: Mapped[str] = mapped_column(String(255))
 
     requests: Mapped[List["Request"]] = relationship(
         back_populates="song", cascade="all, delete-orphan"
