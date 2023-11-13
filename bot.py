@@ -160,7 +160,7 @@ if __name__ == "__main__":
     setupSQLLogging()
 
     if os.environ['OUTPUT']:
-        os.makedirs(os.environ['OUTPUT'], exists_ok=True)
+        os.makedirs(os.environ['OUTPUT'], exist_ok=True)
 
     logger.info("creating DB engine")
     engine = create_engine(r"sqlite:///database.db", echo=False)
