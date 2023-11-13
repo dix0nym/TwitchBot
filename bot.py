@@ -76,7 +76,7 @@ class Bot(commands.Bot):
         if not song:
             self.logger.info(f"New Song: '{url}'")
             ydl_opts = {
-                'outtmpl': f'{os.environ["output"]}/%(title)s-%(id)s.%(ext)s',
+                'outtmpl': f'{os.environ["OUTPUT"]}/%(title)s-%(id)s.%(ext)s',
                 'format': 'm4a/bestaudio/best',
                 'overwrites': True,
                 'restrictfilenames': True,
@@ -92,7 +92,7 @@ class Bot(commands.Bot):
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                if os.environ['output']:
+                if os.environ['OUTPUT']:
                     ydl.process_info(info)
                 song = Song(id=info['id'], title=info['title'], url=info['webpage_url'],
                             duration=info['duration'], upload_date=info['upload_date'],
@@ -159,8 +159,8 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     setupSQLLogging()
 
-    if os.environ['output']:
-        os.makedirs(os.environ['output'], exists_ok=True)
+    if os.environ['OUTPUT']:
+        os.makedirs(os.environ['OUTPUT'], exists_ok=True)
 
     logger.info("creating DB engine")
     engine = create_engine(r"sqlite:///database.db", echo=False)
