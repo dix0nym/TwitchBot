@@ -40,3 +40,7 @@ $ chmod +x start.sh && ./start.sh
 # normal start in foreground via pipenv
 $ pipenv run python bot.py
 ```
+
+## Schema
+
+![schema](schema/schema.png)
