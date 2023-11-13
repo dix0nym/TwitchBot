@@ -15,6 +15,7 @@ from orm import Base, User, Request, Song
 import yt_dlp
 from datetime import datetime
 
+
 class Bot(commands.Bot):
 
     def __init__(self, engine):
@@ -74,13 +75,25 @@ class Bot(commands.Bot):
 
         if not song:
             self.logger.info(f"New Song: '{url}'")
-            ytdlp_options = {
+            ydl_opts = {
+                'outtmpl': f'{os.environ["output"]}/%(title)s-%(id)s.%(ext)s',
+                'format': 'm4a/bestaudio/best',
+                'overwrites': True,
+                'restrictfilenames': True,
+                'writethumbnail': 'true',
+                'postprocessors': [
+                    {'key': 'FFmpegExtractAudio', 'preferredcodec': 'opus'},
+                    {'key': 'FFmpegMetadata', 'add_metadata': True},
+                    {'key': 'EmbedThumbnail', 'already_have_thumbnail': False}
+                ],
                 'noprogress': True,
                 'verbose': False,
-                "quiet": True,
+                'quiet': True,
             }
-            with yt_dlp.YoutubeDL(ytdlp_options) as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
+                if os.environ['output']:
+                    ydl.process_info(info)
                 song = Song(id=info['id'], title=info['title'], url=info['webpage_url'],
                             duration=info['duration'], upload_date=info['upload_date'],
                             channel=info['channel'], thumbnail=info['thumbnail'])
@@ -99,9 +112,9 @@ class Bot(commands.Bot):
 
         session.close()
         if os.environ['WEBHOOK']:
-            await self.send_notification(os.environ['WEBHOOK'], ctx.author.name, song.title, song.url, song.thumbnail)
+            await self.send_notification(os.environ['WEBHOOK'], ctx.author.name, song.title, song.url)
 
-    async def send_notification(self, webhook, author, title, url, thumbnail):
+    async def send_notification(self, webhook, author, title, url):
         async with aiohttp.ClientSession() as session:
             webhook = Webhook.from_url(webhook, session=session)
             e = discord.Embed(title="Song Reqest", description=f"{title}", timestamp=datetime.now(),
@@ -109,10 +122,10 @@ class Bot(commands.Bot):
             e.add_field(name="Title", value=f"{title}")
             e.add_field(name="URL", value=f"{url}")
             e.add_field(name="Requester", value=f"{author}")
-            e.set_image(url=thumbnail)
-            e.set_thumbnail(url=thumbnail)
 
             await webhook.send(content="", embed=e, username="Twitch-SR")
+            await webhook.send(content=f"{url}")
+
 
 def setupSQLLogging():
     sqlLogger = logging.getLogger('sqlalchemy')
@@ -141,12 +154,15 @@ def filter_maker(level):
 
 
 if __name__ == "__main__":
+    # setup logging
     logging.config.dictConfig(json.load(open("logging_config.json", "r")))
     logger = logging.getLogger()
     setupSQLLogging()
 
-    logger.info("creating DB engine")
+    if os.environ['output']:
+        os.makedirs(os.environ['output'], exists_ok=True)
 
+    logger.info("creating DB engine")
     engine = create_engine(r"sqlite:///database.db", echo=False)
 
     logger.info("creating DB schema")
