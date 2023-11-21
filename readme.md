@@ -1,4 +1,4 @@
-# TwitchBot
+# Song-Request TwitchBot
 
 Chatbot which listens for song requests like `!sr [url]` and saves them
 to a SQLite database. It also extracts metadata and downloads the audio
@@ -39,6 +39,9 @@ $ chmod +x start.sh && ./start.sh
 
 # normal start in foreground via pipenv
 $ pipenv run python bot.py
+
+# to stop the bot
+$ chmod +X stop.sh & ./stop.sh
 ```
 
 ## Schema
