@@ -14,22 +14,22 @@
     },
     "handlers": {
         "stdout": {
-            "class": "logging.StreamHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "level": "INFO",
             "formatter": "simple",
-            "stream": "ext://sys.stdout",
-            "filters": ["warnings_and_below"]
+            "filters": ["warnings_and_below"],
+            "filename": "app.log",
+            "maxBytes": 5120,
+            "backupCount": 2,
+            "mode": "w"
         },
         "stderr": {
-            "class": "logging.StreamHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "level": "ERROR",
             "formatter": "simple",
-            "stream": "ext://sys.stderr"
-        },
-        "file": {
-            "class": "logging.FileHandler",
-            "formatter": "simple",
-            "filename": "app.log",
+            "filename": "errors.log",
+            "maxBytes": 5120,
+            "backupCount": 2,
             "mode": "w"
         }
     },
@@ -37,8 +37,7 @@
         "level": "DEBUG",
         "handlers": [
             "stderr",
-            "stdout",
-            "file"
+            "stdout"
         ]
     }
 }
