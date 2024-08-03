@@ -8,6 +8,8 @@ twitchio = "*"
 sqlalchemy = "*"
 yt-dlp = "*"
 discord = "*"
+requests = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
